@@ -1,22 +1,26 @@
 import requests
 import time
+
+from discord.ext import commands
 from sty import Style, RgbFg, fg, bg, ef, rs
 import os
 
+import discord
 
-def print_fish_by_apikey(apikey, character_name):
+
+def generate_status_fish_by_apikey(apikey, character_name):
     ITEMS_IN_INVENTORY = []
     COUNT_INVENTORY = {}
     FISH_IN_INVENTORY = []
     TOTAL_FISH = 0
     JUNK = 0
-    BASIC =0
-    FINE =0
-    MASTERWORK =0
-    RARE =0
-    EXOTIC =0
-    ASCENDED =0
-    LEGENDARY =0
+    BASIC = 0
+    FINE = 0
+    MASTERWORK = 0
+    RARE = 0
+    EXOTIC = 0
+    ASCENDED = 0
+    LEGENDARY = 0
 
     fg.WHITE = Style(RgbFg(255, 255, 255))
     fg.JUNK = Style(RgbFg(209, 207, 207))
@@ -48,44 +52,221 @@ def print_fish_by_apikey(apikey, character_name):
                 color = ""
                 if e['rarity'] == "Junk":
                     JUNK += COUNT_INVENTORY.get(e['id'])
-                    color = fg.JUNK
                 elif e['rarity'] == "Basic":
                     BASIC += COUNT_INVENTORY.get(e['id'])
-                    color = fg.BASIC
                 elif e['rarity'] == "Fine":
                     FINE += COUNT_INVENTORY.get(e['id'])
-                    color = fg.FINE
                 elif e['rarity'] == "Masterwork":
                     MASTERWORK += COUNT_INVENTORY.get(e['id'])
-                    color = fg.MASTERWORK
                 elif e['rarity'] == "Rare":
                     RARE += COUNT_INVENTORY.get(e['id'])
-                    color = fg.RARE
                 elif e['rarity'] == "Exotic":
                     EXOTIC += COUNT_INVENTORY.get(e['id'])
-                    color = fg.EXOTIC
                 elif e['rarity'] == "Ascended":
                     ASCENDED += COUNT_INVENTORY.get(e['id'])
-                    color = fg.ASCENDED
                 elif e['rarity'] == "Legendary":
                     LEGENDARY += COUNT_INVENTORY.get(e['id'])
-                    color = fg.LEGENDARY
                 FISH_IN_INVENTORY.append(color + e['name'] + '  ' + str(COUNT_INVENTORY.get(e['id'])))
                 TOTAL_FISH += COUNT_INVENTORY.get(e['id'])
-    print(character_name + ':    ' + ' |  '.join(str(e) for e in FISH_IN_INVENTORY) + fg.WHITE)
-    print(character_name + ':    ' + 'Total Fish: ' +  str(TOTAL_FISH) + ' | Legendary: ' + str(LEGENDARY) + '| '
-            'Ascended: ' + str(ASCENDED) + ' | EXOTIC: ' + str(EXOTIC) + ' | RARE: ' + str(RARE) + ' | MASTERWORK: ' +
+    return (character_name + ':    ' + ' |  '.join(str(e) for e in FISH_IN_INVENTORY) + "\n" + 'Total Fish: ' + str(
+        TOTAL_FISH) + ' | Legendary: ' + str(LEGENDARY) + '| '
+                                                          'Ascended: ' + str(ASCENDED) + ' | EXOTIC: ' + str(
+        EXOTIC) + ' | RARE: ' + str(RARE) + ' | MASTERWORK: ' +
             str(MASTERWORK) + ' | FINE: ' + str(FINE) + ' | BASIC: ' + str(BASIC))
 
 
+def generate_standings_apikey(subscribers):
+    STANDINGS = {}
+    for sub in subscribers:
+        API_KEY = sub[0]
+        PLAYER_NAME = sub[1]
+        ITEMS_IN_INVENTORY = []
+        COUNT_INVENTORY = {}
+        FISH_IN_INVENTORY = []
+
+        # Count
+        TOTAL_FISH = 0
+        JUNK = 0
+        BASIC = 0
+        FINE = 0
+        MASTERWORK = 0
+        RARE = 0
+        EXOTIC = 0
+        ASCENDED = 0
+        LEGENDARY = 0
+
+        # Rarity Score
+        JUNK_SCORE = 0
+        BASIC_SCORE = 1
+        FINE_SCORE = 2
+        MASTERWORK_SCORE = 3
+        RARE_SCORE = 5
+        EXOTIC_SCORE = 7
+        ASCENDED_SCORE = 10
+        LEGENDARY_SCORE = 15
+
+        payload = {'access_token': API_KEY}
+        r = requests.get(f'https://api.guildwars2.com/v2/characters/{PLAYER_NAME}/inventory', params=payload)
+        json = r.json()
+        for ibag in json["bags"]:
+            for item in ibag['inventory']:
+                if item is not None:
+                    item_id = item["id"]
+                    ITEMS_IN_INVENTORY.append(item_id)
+                    COUNT_INVENTORY[item_id] = item["count"]
+
+        items_string = ' ,'.join(str(e) for e in ITEMS_IN_INVENTORY)
+        payload_two = {'ids': items_string}
+        re = requests.get('https://api.guildwars2.com/v2/items', params=payload_two)
+        json_items = re.json()
+        for e in json_items:
+            if 'description' in e:
+                if e['description'] == 'Double-click to convert to materials.':
+                    color = ""
+                    if e['rarity'] == "Junk":
+                        JUNK += COUNT_INVENTORY.get(e['id'])
+                    elif e['rarity'] == "Basic":
+                        BASIC += COUNT_INVENTORY.get(e['id'])
+                    elif e['rarity'] == "Fine":
+                        FINE += COUNT_INVENTORY.get(e['id'])
+                    elif e['rarity'] == "Masterwork":
+                        MASTERWORK += COUNT_INVENTORY.get(e['id'])
+                    elif e['rarity'] == "Rare":
+                        RARE += COUNT_INVENTORY.get(e['id'])
+                    elif e['rarity'] == "Exotic":
+                        EXOTIC += COUNT_INVENTORY.get(e['id'])
+                    elif e['rarity'] == "Ascended":
+                        ASCENDED += COUNT_INVENTORY.get(e['id'])
+                    elif e['rarity'] == "Legendary":
+                        LEGENDARY += COUNT_INVENTORY.get(e['id'])
+        STANDINGS[
+            PLAYER_NAME] = JUNK * JUNK_SCORE + BASIC * BASIC_SCORE + FINE * FINE_SCORE + MASTERWORK * MASTERWORK_SCORE + RARE * RARE_SCORE + EXOTIC * EXOTIC_SCORE + ASCENDED * ASCENDED_SCORE + LEGENDARY * LEGENDARY_SCORE
+    return STANDINGS
+
+
+def generate_advanced_standings_apikey(subscribers):
+    STANDINGS = {}
+    for sub in subscribers:
+        API_KEY = sub[0]
+        PLAYER_NAME = sub[1]
+        ITEMS_IN_INVENTORY = []
+        COUNT_INVENTORY = {}
+        FISH_IN_INVENTORY = []
+
+        # Count
+        TOTAL_FISH = 0
+        JUNK = 0
+        BASIC = 0
+        FINE = 0
+        MASTERWORK = 0
+        RARE = 0
+        EXOTIC = 0
+        ASCENDED = 0
+        LEGENDARY = 0
+
+        # Rarity Score
+        JUNK_SCORE = 0
+        BASIC_SCORE = 1
+        FINE_SCORE = 2
+        MASTERWORK_SCORE = 3
+        RARE_SCORE = 5
+        EXOTIC_SCORE = 7
+        ASCENDED_SCORE = 10
+        LEGENDARY_SCORE = 15
+
+        payload = {'access_token': API_KEY}
+        r = requests.get(f'https://api.guildwars2.com/v2/characters/{PLAYER_NAME}/inventory', params=payload)
+        json = r.json()
+        for ibag in json["bags"]:
+            for item in ibag['inventory']:
+                if item is not None:
+                    item_id = item["id"]
+                    ITEMS_IN_INVENTORY.append(item_id)
+                    COUNT_INVENTORY[item_id] = item["count"]
+
+        items_string = ' ,'.join(str(e) for e in ITEMS_IN_INVENTORY)
+        payload_two = {'ids': items_string}
+        re = requests.get('https://api.guildwars2.com/v2/items', params=payload_two)
+        json_items = re.json()
+        for e in json_items:
+            if 'description' in e:
+                if e['description'] == 'Double-click to convert to materials.':
+                    color = ""
+                    if e['rarity'] == "Junk":
+                        JUNK += COUNT_INVENTORY.get(e['id'])
+                    elif e['rarity'] == "Basic":
+                        BASIC += COUNT_INVENTORY.get(e['id'])
+                    elif e['rarity'] == "Fine":
+                        FINE += COUNT_INVENTORY.get(e['id'])
+                    elif e['rarity'] == "Masterwork":
+                        MASTERWORK += COUNT_INVENTORY.get(e['id'])
+                    elif e['rarity'] == "Rare":
+                        RARE += COUNT_INVENTORY.get(e['id'])
+                    elif e['rarity'] == "Exotic":
+                        EXOTIC += COUNT_INVENTORY.get(e['id'])
+                    elif e['rarity'] == "Ascended":
+                        ASCENDED += COUNT_INVENTORY.get(e['id'])
+                    elif e['rarity'] == "Legendary":
+                        LEGENDARY += COUNT_INVENTORY.get(e['id'])
+        STANDINGS[
+            PLAYER_NAME] = [[JUNK, JUNK_SCORE], [BASIC, BASIC_SCORE], [FINE, FINE_SCORE],
+                            [MASTERWORK, MASTERWORK_SCORE], [RARE, RARE_SCORE],
+                            [EXOTIC, EXOTIC_SCORE], [ASCENDED, ASCENDED_SCORE], [LEGENDARY, LEGENDARY_SCORE]]
+    return STANDINGS
+
+
 if __name__ == '__main__':
-    os.system('color 8f')
-
     SUBSCRIBER_FISHING_CHALLENGE = [
-        ['072C6BF4-DA86-8948-BB0E-0818531EDD11859E8F18-B863-4EC2-9931-003970C7E73C', 'Fish O Matic']
+        ['072C6BF4-DA86-8948-BB0E-0818531EDD11859E8F18-B863-4EC2-9931-003970C7E73C', 'Fish O Matic'],
+        ['B4B1910A-3756-5B4E-8E16-233CFDD4F89C571541AD-B64A-488D-84F9-3F2EA8555224', 'Cpt Finn Squidlips']
     ]
+    client = discord.Client()
 
-    while True:
-        for e in SUBSCRIBER_FISHING_CHALLENGE:
-            print_fish_by_apikey(e[0], e[1])
-        time.sleep(20)
+
+    @client.event
+    async def on_ready():
+        print('We have logged in as {0.user}'.format(client))
+
+    @client.event
+    async def on_message(message):
+        if message.author == client.user:
+            return
+        if message.content == 'Points':
+            response = sorted(generate_advanced_standings_apikey(SUBSCRIBER_FISHING_CHALLENGE).items(),
+                              key=lambda x: x[1],
+                              reverse=True)
+            place = 1
+            for key in response:
+                print_message = f"Position {place}: " + str(key[0])
+                JUNK = key[1][0]
+                BASIC = key[1][1]
+                FINE = key[1][2]
+                MASTERWORK = key[1][3]
+                RARE = key[1][4]
+                EXOTIC = key[1][5]
+                ASCENDED = key[1][6]
+                LEGENDARY = key[1][7]
+                TOTAL = JUNK[0] * JUNK[1] + BASIC[0] * BASIC[1] + FINE[0] * FINE[1] + MASTERWORK[0] * MASTERWORK[1] + RARE[0] * RARE[1] + EXOTIC[0] * EXOTIC[1] + ASCENDED[0] * ASCENDED[1] + LEGENDARY[0] * LEGENDARY[1]
+                second_print = f"JUNK: {JUNK[0]} Fish * {JUNK[1]} Quantity = {JUNK[0] * JUNK[1]} Points" + "\n" + f"BASIC: {BASIC[0]} Fish * {BASIC[1]} Quantity = {BASIC[0] * BASIC[1]} Points" + "\n" + f"FINE: {FINE[0]} Fish * {FINE[1]} Quantity = {FINE[0] * FINE[1]} Points" + "\n" + f"MASTERWORK: {MASTERWORK[0]} Fish * {MASTERWORK[1]} Quantity = {MASTERWORK[0] * MASTERWORK[1]} Points" + "\n" + f"RARE: {RARE[0]} Fish * {RARE[1]} Quantity = {RARE[0] * RARE[1]} Points" + "\n" + f"EXOTIC: {EXOTIC[0]} Fish * {EXOTIC[1]} Quantity = {EXOTIC[0] * EXOTIC[1]} Points" + "\n" + f"ASCENDED: {ASCENDED[0]} Fish * {ASCENDED[1]} Quantity = {ASCENDED[0] * ASCENDED[1]} Points" + "\n" + f"LEGENDARY: {LEGENDARY[0]} Fish * {LEGENDARY[1]} Quantity = {LEGENDARY[0] * LEGENDARY[1]} Points "
+                await message.channel.send(print_message + "\n" + second_print + "\n" + "Total: "+ str(TOTAL)+ " Points")
+                await message.channel.send("---------------------------------------------------")
+                place += 1
+        elif message.content == 'Fish':
+            for e in SUBSCRIBER_FISHING_CHALLENGE:
+                response = generate_status_fish_by_apikey(e[0], e[1])
+                await message.channel.send(response)
+                await message.channel.send("---------------------------------------------------")
+        elif message.content == 'Standings':
+            response = sorted(generate_standings_apikey(SUBSCRIBER_FISHING_CHALLENGE).items(), key=lambda x: x[1],
+                              reverse=True)
+            place = 1
+            for key in response:
+                print_message = f"Position {place}: " + str(key[0]) + ' -> ' + str(key[1]) + " Points"
+                await message.channel.send(print_message)
+                await message.channel.send("---------------------------------------------------")
+                place += 1
+        elif message.content == 'help':
+            await message.channel.send("Write <Points>, <Fish>, <Standings> for tournament information")
+
+
+    client.run("OTU1ODIyNTI1NjMwMjcxNTE4.YjnRGA.98DD0LzogIzzvggEi1rMjy-rTB4")
