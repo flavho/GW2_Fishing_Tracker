@@ -4,6 +4,9 @@ import time
 from discord.ext import commands
 from sty import Style, RgbFg, fg, bg, ef, rs
 import os
+from dotenv import load_dotenv
+import pickle
+
 
 import discord
 
@@ -216,19 +219,20 @@ def generate_advanced_standings_apikey(subscribers):
 
 
 if __name__ == '__main__':
-    SUBSCRIBER_FISHING_CHALLENGE = [
-        ['072C6BF4-DA86-8948-BB0E-0818531EDD11859E8F18-B863-4EC2-9931-003970C7E73C', 'Fish O Matic'],
-        ['B4B1910A-3756-5B4E-8E16-233CFDD4F89C571541AD-B64A-488D-84F9-3F2EA8555224', 'Cpt Finn Squidlips']
-    ]
     client = discord.Client()
 
-
+    load_dotenv()
+    TOKEN = os.getenv('DISCORD_TOKEN')
     @client.event
     async def on_ready():
         print('We have logged in as {0.user}'.format(client))
 
     @client.event
     async def on_message(message):
+
+        pkl_file = open('data.pkl', 'rb')
+        SUBSCRIBER_FISHING_CHALLENGE = pickle.load(pkl_file)
+
         if message.author == client.user:
             return
         if message.content == 'Points':
@@ -267,6 +271,18 @@ if __name__ == '__main__':
                 place += 1
         elif message.content == 'help':
             await message.channel.send("Write <Points>, <Fish>, <Standings> for tournament information")
+        elif message.content.startswith('Register:'):
+            creds = message.content[9:]
+            parts = creds.split(",")
+            api_key = parts[0]
+            name = parts[1]
+            SUBSCRIBER_FISHING_CHALLENGE.append([api_key, name])
+            set(tuple(element) for element in SUBSCRIBER_FISHING_CHALLENGE)
+            output = open('data.pkl', 'wb')
+            pickle.dump(SUBSCRIBER_FISHING_CHALLENGE, output)
+            output.close()
+
+            await message.channel.send("User registered!")
 
 
-    client.run("OTU1ODIyNTI1NjMwMjcxNTE4.YjnRGA.98DD0LzogIzzvggEi1rMjy-rTB4")
+    client.run(TOKEN)
