@@ -1,14 +1,12 @@
 import requests
 import time
 
-from discord.ext import commands
 from sty import Style, RgbFg, fg, bg, ef, rs
 import os
 from dotenv import load_dotenv
-import pickle
+import base64
 
 import sqlite3
-
 import discord
 
 
@@ -19,13 +17,34 @@ def create_new_user(apikey, name, discord_user_id):
     con.commit()
     con.close()
 
-def getUser(discord_id):
+def get_user(discord_id):
     con = sqlite3.connect('user.db')
     cur = con.cursor()
     cur.execute("select * from users where discordid=:discord_id", {"discord_id": discord_id})
     save = cur.fetchall()
     con.close()
     return save
+
+def create_tournament(apikey, name, discord_user_id, start, duration,id, preparing_time):
+    con = sqlite3.connect('user.db')
+    cur = con.cursor()
+    cur.execute("insert into tournament values (?, ?, ?, ?, ?, ?, ?)", (apikey, name, discord_user_id, start, duration,id, preparing_time))
+    con.commit()
+    con.close()
+
+
+def join_tournament(tournament_id, api_key, player_name, discord_id):
+    con = sqlite3.connect('user.db')
+    cur = con.cursor()
+    cur.execute("select * from tournament where id=:tournament_id", {"tournament_id": tournament_id})
+    save = cur.fetchall()
+    api_keys = save[0][0] + "," + api_key
+    char_names = save[0][1] + "," + player_name
+    discord_id = save[0][2] + "," + discord_id
+    cur.execute(f"update tournament SET subscriberkey = '{api_keys}', subscribername = '{char_names}', discordid = '{discord_id}' WHERE id = '{tournament_id}'")
+    con.commit()
+    con.close()
+
 
 def generate_status_fish_by_apikey(apikey, character_name):
     ITEMS_IN_INVENTORY = []
@@ -87,11 +106,11 @@ def generate_status_fish_by_apikey(apikey, character_name):
                     LEGENDARY += COUNT_INVENTORY.get(e['id'])
                 FISH_IN_INVENTORY.append(color + e['name'] + '  ' + str(COUNT_INVENTORY.get(e['id'])))
                 TOTAL_FISH += COUNT_INVENTORY.get(e['id'])
-    return (character_name + ':    ' + ' |  '.join(str(e) for e in FISH_IN_INVENTORY) + "\n" + 'Total Fish: ' + str(
+    return (character_name + ':    ' + ' |  '.join(str(e) for e in FISH_IN_INVENTORY) + "\n" + '```diff\n' + 'Total Fish: ' + str(
         TOTAL_FISH) + ' | Legendary: ' + str(LEGENDARY) + '| '
                                                           'Ascended: ' + str(ASCENDED) + ' | EXOTIC: ' + str(
         EXOTIC) + ' | RARE: ' + str(RARE) + ' | MASTERWORK: ' +
-            str(MASTERWORK) + ' | FINE: ' + str(FINE) + ' | BASIC: ' + str(BASIC))
+            str(MASTERWORK) + ' | FINE: ' + str(FINE) + ' | BASIC: ' + str(BASIC)) + '\n```'
 
 
 def generate_standings_apikey(subscribers):
@@ -250,7 +269,7 @@ if __name__ == '__main__':
     async def on_message(message):
         message_author = message.author.display_name + '#' + message.author.discriminator
 
-        user = getUser(message_author)
+        user = get_user(message_author)
         if len(user) == 0:
             if message.author == client.user:
                 return
@@ -323,6 +342,26 @@ if __name__ == '__main__':
             elif message.content == 'help':
                 await message.channel.send("Write <Points>, <Fish>, <Standings> for tournament information")
 
+
+            elif message.content.startswith('Tournament:'):
+                creds = message.content[11:]
+                parts = creds.split(",")
+                duration = parts[0]
+                preparing_time = parts[1]
+                current_time = time.time()
+
+                id_string = str(int(current_time)) + char_name
+                id_string_bytes = id_string.encode('ascii')
+                base64_bytes = base64.b64encode(id_string_bytes)
+                base64_id_string = base64_bytes.decode('ascii')
+
+                create_tournament(api_key, char_name, message_author, current_time, duration, base64_id_string, preparing_time)
+                await message.channel.send(f"Your event key is: {base64_id_string}")
+
+            elif message.content.startswith('Join:'):
+                key = message.content[5:]
+                join_tournament(key, api_key, char_name, message_author)
+                await message.channel.send(f"You joined the event")
 
 
 
