@@ -7,9 +7,25 @@ import os
 from dotenv import load_dotenv
 import pickle
 
+import sqlite3
 
 import discord
 
+
+def create_new_user(apikey, name, discord_user_id):
+    con = sqlite3.connect('user.db')
+    cur = con.cursor()
+    cur.execute("insert into users values (?, ?, ?)", (apikey, name, discord_user_id))
+    con.commit()
+    con.close()
+
+def getUser(discord_id):
+    con = sqlite3.connect('user.db')
+    cur = con.cursor()
+    cur.execute("select * from users where discordid=:discord_id", {"discord_id": discord_id})
+    save = cur.fetchall()
+    con.close()
+    return save
 
 def generate_status_fish_by_apikey(apikey, character_name):
     ITEMS_IN_INVENTORY = []
@@ -223,12 +239,17 @@ if __name__ == '__main__':
 
     load_dotenv()
     TOKEN = os.getenv('DISCORD_TOKEN')
+
+
     @client.event
     async def on_ready():
         print('We have logged in as {0.user}'.format(client))
 
+
     @client.event
     async def on_message(message):
+        message_author = message.author.display_name + '#' + message.author.discriminator
+        user = getUser(message_author)
 
         pkl_file = open('data.pkl', 'rb')
         SUBSCRIBER_FISHING_CHALLENGE = pickle.load(pkl_file)
@@ -250,9 +271,12 @@ if __name__ == '__main__':
                 EXOTIC = key[1][5]
                 ASCENDED = key[1][6]
                 LEGENDARY = key[1][7]
-                TOTAL = JUNK[0] * JUNK[1] + BASIC[0] * BASIC[1] + FINE[0] * FINE[1] + MASTERWORK[0] * MASTERWORK[1] + RARE[0] * RARE[1] + EXOTIC[0] * EXOTIC[1] + ASCENDED[0] * ASCENDED[1] + LEGENDARY[0] * LEGENDARY[1]
+                TOTAL = JUNK[0] * JUNK[1] + BASIC[0] * BASIC[1] + FINE[0] * FINE[1] + MASTERWORK[0] * MASTERWORK[1] + \
+                        RARE[0] * RARE[1] + EXOTIC[0] * EXOTIC[1] + ASCENDED[0] * ASCENDED[1] + LEGENDARY[0] * \
+                        LEGENDARY[1]
                 second_print = f"JUNK: {JUNK[0]} Fish * {JUNK[1]} Quantity = {JUNK[0] * JUNK[1]} Points" + "\n" + f"BASIC: {BASIC[0]} Fish * {BASIC[1]} Quantity = {BASIC[0] * BASIC[1]} Points" + "\n" + f"FINE: {FINE[0]} Fish * {FINE[1]} Quantity = {FINE[0] * FINE[1]} Points" + "\n" + f"MASTERWORK: {MASTERWORK[0]} Fish * {MASTERWORK[1]} Quantity = {MASTERWORK[0] * MASTERWORK[1]} Points" + "\n" + f"RARE: {RARE[0]} Fish * {RARE[1]} Quantity = {RARE[0] * RARE[1]} Points" + "\n" + f"EXOTIC: {EXOTIC[0]} Fish * {EXOTIC[1]} Quantity = {EXOTIC[0] * EXOTIC[1]} Points" + "\n" + f"ASCENDED: {ASCENDED[0]} Fish * {ASCENDED[1]} Quantity = {ASCENDED[0] * ASCENDED[1]} Points" + "\n" + f"LEGENDARY: {LEGENDARY[0]} Fish * {LEGENDARY[1]} Quantity = {LEGENDARY[0] * LEGENDARY[1]} Points "
-                await message.channel.send(print_message + "\n" + second_print + "\n" + "Total: "+ str(TOTAL)+ " Points")
+                await message.channel.send(
+                    print_message + "\n" + second_print + "\n" + "Total: " + str(TOTAL) + " Points")
                 await message.channel.send("---------------------------------------------------")
                 place += 1
         elif message.content == 'Fish':
@@ -272,17 +296,21 @@ if __name__ == '__main__':
         elif message.content == 'help':
             await message.channel.send("Write <Points>, <Fish>, <Standings> for tournament information")
         elif message.content.startswith('Register:'):
-            creds = message.content[9:]
-            parts = creds.split(",")
-            api_key = parts[0]
-            name = parts[1]
-            SUBSCRIBER_FISHING_CHALLENGE.append([api_key, name])
-            set(tuple(element) for element in SUBSCRIBER_FISHING_CHALLENGE)
-            output = open('data.pkl', 'wb')
-            pickle.dump(SUBSCRIBER_FISHING_CHALLENGE, output)
-            output.close()
+            if message.channel.type.name == 'private':
+                creds = message.content[9:]
+                parts = creds.split(",")
+                api_key = parts[0]
+                name = parts[1]
+                message_author = message.author.display_name + '#' + message.author.discriminator
+                create_new_user(api_key, name, message_author)
+                await message.channel.send("User registered!")
+            else:
+                await message.channel.send(
+                    "Please use the private chat for user registration: Type <Register> for further information")
 
-            await message.channel.send("User registered!")
+        elif message.content.startswith('Register'):
+            await message.channel.send(
+                "Please send your user details in a private chat with GW2FishingTournament in the following format {API Key needs inventory and account access}: \n Register:<apikey>,<character_name>")
 
 
     client.run(TOKEN)
