@@ -249,68 +249,81 @@ if __name__ == '__main__':
     @client.event
     async def on_message(message):
         message_author = message.author.display_name + '#' + message.author.discriminator
+
         user = getUser(message_author)
+        if len(user) == 0:
+            if message.author == client.user:
+                return
+            await message.channel.send("You need to register to see information. Please type <Register> for more information")
 
-        pkl_file = open('data.pkl', 'rb')
-        SUBSCRIBER_FISHING_CHALLENGE = pickle.load(pkl_file)
+            if message.content.startswith('Register:'):
+                if message.channel.type.name == 'private':
+                    creds = message.content[9:]
+                    parts = creds.split(",")
+                    api_key = parts[0]
+                    name = parts[1]
+                    message_author = message.author.display_name + '#' + message.author.discriminator
+                    create_new_user(api_key, name, message_author)
+                    await message.channel.send("User registered!")
+                else:
+                    await message.channel.send(
+                        "Please use the private chat for user registration: Type <Register> for further information")
 
-        if message.author == client.user:
-            return
-        if message.content == 'Points':
-            response = sorted(generate_advanced_standings_apikey(SUBSCRIBER_FISHING_CHALLENGE).items(),
-                              key=lambda x: x[1],
-                              reverse=True)
-            place = 1
-            for key in response:
-                print_message = f"Position {place}: " + str(key[0])
-                JUNK = key[1][0]
-                BASIC = key[1][1]
-                FINE = key[1][2]
-                MASTERWORK = key[1][3]
-                RARE = key[1][4]
-                EXOTIC = key[1][5]
-                ASCENDED = key[1][6]
-                LEGENDARY = key[1][7]
-                TOTAL = JUNK[0] * JUNK[1] + BASIC[0] * BASIC[1] + FINE[0] * FINE[1] + MASTERWORK[0] * MASTERWORK[1] + \
-                        RARE[0] * RARE[1] + EXOTIC[0] * EXOTIC[1] + ASCENDED[0] * ASCENDED[1] + LEGENDARY[0] * \
-                        LEGENDARY[1]
-                second_print = f"JUNK: {JUNK[0]} Fish * {JUNK[1]} Quantity = {JUNK[0] * JUNK[1]} Points" + "\n" + f"BASIC: {BASIC[0]} Fish * {BASIC[1]} Quantity = {BASIC[0] * BASIC[1]} Points" + "\n" + f"FINE: {FINE[0]} Fish * {FINE[1]} Quantity = {FINE[0] * FINE[1]} Points" + "\n" + f"MASTERWORK: {MASTERWORK[0]} Fish * {MASTERWORK[1]} Quantity = {MASTERWORK[0] * MASTERWORK[1]} Points" + "\n" + f"RARE: {RARE[0]} Fish * {RARE[1]} Quantity = {RARE[0] * RARE[1]} Points" + "\n" + f"EXOTIC: {EXOTIC[0]} Fish * {EXOTIC[1]} Quantity = {EXOTIC[0] * EXOTIC[1]} Points" + "\n" + f"ASCENDED: {ASCENDED[0]} Fish * {ASCENDED[1]} Quantity = {ASCENDED[0] * ASCENDED[1]} Points" + "\n" + f"LEGENDARY: {LEGENDARY[0]} Fish * {LEGENDARY[1]} Quantity = {LEGENDARY[0] * LEGENDARY[1]} Points "
+            elif message.content.startswith('Register'):
                 await message.channel.send(
-                    print_message + "\n" + second_print + "\n" + "Total: " + str(TOTAL) + " Points")
-                await message.channel.send("---------------------------------------------------")
-                place += 1
-        elif message.content == 'Fish':
-            for e in SUBSCRIBER_FISHING_CHALLENGE:
-                response = generate_status_fish_by_apikey(e[0], e[1])
+                    "Please send your user details in a private chat with GW2FishingTournament in the following format {API Key needs inventory, characters and account access}: \n Register:<apikey>,<character_name>")
+
+        else:
+            api_key = user[0][0]
+            char_name = user[0][1]
+
+            if message.author == client.user:
+                return
+            if message.content == 'Points':
+                response = sorted(generate_advanced_standings_apikey(SUBSCRIBER_FISHING_CHALLENGE).items(),
+                                key=lambda x: x[1],
+                                reverse=True)
+                place = 1
+                for key in response:
+                    print_message = f"Position {place}: " + str(key[0])
+                    JUNK = key[1][0]
+                    BASIC = key[1][1]
+                    FINE = key[1][2]
+                    MASTERWORK = key[1][3]
+                    RARE = key[1][4]
+                    EXOTIC = key[1][5]
+                    ASCENDED = key[1][6]
+                    LEGENDARY = key[1][7]
+                    TOTAL = JUNK[0] * JUNK[1] + BASIC[0] * BASIC[1] + FINE[0] * FINE[1] + MASTERWORK[0] * MASTERWORK[1] + \
+                            RARE[0] * RARE[1] + EXOTIC[0] * EXOTIC[1] + ASCENDED[0] * ASCENDED[1] + LEGENDARY[0] * \
+                            LEGENDARY[1]
+                    second_print = f"JUNK: {JUNK[0]} Fish * {JUNK[1]} Quantity = {JUNK[0] * JUNK[1]} Points" + "\n" + f"BASIC: {BASIC[0]} Fish * {BASIC[1]} Quantity = {BASIC[0] * BASIC[1]} Points" + "\n" + f"FINE: {FINE[0]} Fish * {FINE[1]} Quantity = {FINE[0] * FINE[1]} Points" + "\n" + f"MASTERWORK: {MASTERWORK[0]} Fish * {MASTERWORK[1]} Quantity = {MASTERWORK[0] * MASTERWORK[1]} Points" + "\n" + f"RARE: {RARE[0]} Fish * {RARE[1]} Quantity = {RARE[0] * RARE[1]} Points" + "\n" + f"EXOTIC: {EXOTIC[0]} Fish * {EXOTIC[1]} Quantity = {EXOTIC[0] * EXOTIC[1]} Points" + "\n" + f"ASCENDED: {ASCENDED[0]} Fish * {ASCENDED[1]} Quantity = {ASCENDED[0] * ASCENDED[1]} Points" + "\n" + f"LEGENDARY: {LEGENDARY[0]} Fish * {LEGENDARY[1]} Quantity = {LEGENDARY[0] * LEGENDARY[1]} Points "
+                    await message.channel.send(
+                        print_message + "\n" + second_print + "\n" + "Total: " + str(TOTAL) + " Points")
+                    await message.channel.send("---------------------------------------------------")
+                    place += 1
+
+
+            elif message.content == 'Fish':
+                response = generate_status_fish_by_apikey(api_key, char_name)
                 await message.channel.send(response)
-                await message.channel.send("---------------------------------------------------")
-        elif message.content == 'Standings':
-            response = sorted(generate_standings_apikey(SUBSCRIBER_FISHING_CHALLENGE).items(), key=lambda x: x[1],
-                              reverse=True)
-            place = 1
-            for key in response:
-                print_message = f"Position {place}: " + str(key[0]) + ' -> ' + str(key[1]) + " Points"
-                await message.channel.send(print_message)
-                await message.channel.send("---------------------------------------------------")
-                place += 1
-        elif message.content == 'help':
-            await message.channel.send("Write <Points>, <Fish>, <Standings> for tournament information")
-        elif message.content.startswith('Register:'):
-            if message.channel.type.name == 'private':
-                creds = message.content[9:]
-                parts = creds.split(",")
-                api_key = parts[0]
-                name = parts[1]
-                message_author = message.author.display_name + '#' + message.author.discriminator
-                create_new_user(api_key, name, message_author)
-                await message.channel.send("User registered!")
-            else:
-                await message.channel.send(
-                    "Please use the private chat for user registration: Type <Register> for further information")
 
-        elif message.content.startswith('Register'):
-            await message.channel.send(
-                "Please send your user details in a private chat with GW2FishingTournament in the following format {API Key needs inventory and account access}: \n Register:<apikey>,<character_name>")
+
+            elif message.content == 'Standings':
+                response = sorted(generate_standings_apikey(SUBSCRIBER_FISHING_CHALLENGE).items(), key=lambda x: x[1],
+                                reverse=True)
+                place = 1
+                for key in response:
+                    print_message = f"Position {place}: " + str(key[0]) + ' -> ' + str(key[1]) + " Points"
+                    await message.channel.send(print_message)
+                    await message.channel.send("---------------------------------------------------")
+                    place += 1
+
+
+            elif message.content == 'help':
+                await message.channel.send("Write <Points>, <Fish>, <Standings> for tournament information")
+
+
 
 
     client.run(TOKEN)
