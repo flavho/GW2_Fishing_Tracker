@@ -18,6 +18,7 @@ def create_subscriber_fishing_challenge(tournament_key):
     con.close()
     return save
 
+
 def create_new_user(apikey, name, discord_user_id):
     con = sqlite3.connect('user.db')
     cur = con.cursor()
@@ -108,22 +109,38 @@ def build_fish_string(fish_in_inventory):
             JUNK = JUNK + count + " " + name + " | "
             fishes[0] = fishes[0] + 1
 
-    if fishes[0] > 0: JUNK = ':fish::white_circle: ' + start + JUNK + end
-    else: JUNK = ':fish::white_circle: '
-    if fishes[1] > 0: BASIC = ':fish::black_circle: ' + start + BASIC + end
-    else: BASIC = ':fish::black_circle: '
-    if fishes[2] > 0: FINE = ':fish::blue_circle: ' + start + FINE + end
-    else: FINE = ':fish::blue_circle: '
-    if fishes[3] > 0: MASTERWORK = ':fish::green_circle: ' + start + MASTERWORK + end
-    else: MASTERWORK = ':fish::green_circle: '
-    if fishes[4] > 0: RARE = ':fish::yellow_circle: ' + start + RARE + end
-    else: RARE = ':fish::yellow_circle: '
-    if fishes[5] > 0: EXOTIC = ':fish::orange_circle: ' + start + EXOTIC + end
-    else: EXOTIC = ':fish::orange_circle: '
-    if fishes[6] > 0: ASCENDED = ':fish::red_circle: ' + start + ASCENDED + end
-    else: ASCENDED = ':fish::red_circle: '
-    if fishes[7] > 0: LEGENDARY = ':fish::purple_circle: ' + start + LEGENDARY + end
-    else: LEGENDARY = ':fish::purple_circle: '
+    if fishes[0] > 0:
+        JUNK = ':fish::white_circle: ' + start + JUNK + end
+    else:
+        JUNK = ':fish::white_circle: '
+    if fishes[1] > 0:
+        BASIC = ':fish::black_circle: ' + start + BASIC + end
+    else:
+        BASIC = ':fish::black_circle: '
+    if fishes[2] > 0:
+        FINE = ':fish::blue_circle: ' + start + FINE + end
+    else:
+        FINE = ':fish::blue_circle: '
+    if fishes[3] > 0:
+        MASTERWORK = ':fish::green_circle: ' + start + MASTERWORK + end
+    else:
+        MASTERWORK = ':fish::green_circle: '
+    if fishes[4] > 0:
+        RARE = ':fish::yellow_circle: ' + start + RARE + end
+    else:
+        RARE = ':fish::yellow_circle: '
+    if fishes[5] > 0:
+        EXOTIC = ':fish::orange_circle: ' + start + EXOTIC + end
+    else:
+        EXOTIC = ':fish::orange_circle: '
+    if fishes[6] > 0:
+        ASCENDED = ':fish::red_circle: ' + start + ASCENDED + end
+    else:
+        ASCENDED = ':fish::red_circle: '
+    if fishes[7] > 0:
+        LEGENDARY = ':fish::purple_circle: ' + start + LEGENDARY + end
+    else:
+        LEGENDARY = ':fish::purple_circle: '
 
     final_res = JUNK + nl + BASIC + nl + FINE + nl + MASTERWORK + nl + RARE + nl + EXOTIC + nl + ASCENDED + nl + LEGENDARY
     return final_res
@@ -192,7 +209,8 @@ def generate_status_fish_by_apikey(apikey, character_name):
 
                 TOTAL_FISH += COUNT_INVENTORY.get(e['id'])
 
-    printed_text = character_name + ':\n' + build_fish_string(FISH_IN_INVENTORY) + '\n' + ':fish::100:' '`' + 'Total Fish: ' + str(
+    printed_text = character_name + ':\n' + build_fish_string(
+        FISH_IN_INVENTORY) + '\n' + ':fish::100:' '`' + 'Total Fish: ' + str(
         TOTAL_FISH) + ' | Legendary: ' + str(LEGENDARY) + '| ''Ascended: ' + str(ASCENDED) + ' | EXOTIC: ' + str(
         EXOTIC) + ' | RARE: ' + str(RARE) + ' | MASTERWORK: ' + str(MASTERWORK) + ' | FINE: ' + str(
         FINE) + ' | BASIC: ' + str(BASIC) + '`'
@@ -263,8 +281,9 @@ def generate_standings_apikey(subscribers):
                         ASCENDED += COUNT_INVENTORY.get(e['id'])
                     elif e['rarity'] == "Legendary":
                         LEGENDARY += COUNT_INVENTORY.get(e['id'])
-        STANDINGS[
-            PLAYER_NAME] = JUNK * JUNK_SCORE + BASIC * BASIC_SCORE + FINE * FINE_SCORE + MASTERWORK * MASTERWORK_SCORE + RARE * RARE_SCORE + EXOTIC * EXOTIC_SCORE + ASCENDED * ASCENDED_SCORE + LEGENDARY * LEGENDARY_SCORE
+        STANDINGS[PLAYER_NAME] = JUNK * JUNK_SCORE + BASIC * BASIC_SCORE + FINE * FINE_SCORE + MASTERWORK * \
+                                 MASTERWORK_SCORE + RARE * RARE_SCORE + EXOTIC * EXOTIC_SCORE + ASCENDED * \
+                                 ASCENDED_SCORE + LEGENDARY * LEGENDARY_SCORE
     return STANDINGS
 
 
@@ -339,7 +358,6 @@ def generate_advanced_standings_apikey(subscribers):
     return STANDINGS
 
 
-
 if __name__ == '__main__':
     client = discord.Client()
 
@@ -351,7 +369,8 @@ if __name__ == '__main__':
     async def on_ready():
         print('We have logged in as {0.user}'.format(client))
 
-    #bug fixen das nicht registrierte Nuzter immer die Error Meldung bekommen
+
+    # bug fixen das nicht registrierte Nuzter immer die Error Meldung bekommen
     @client.event
     async def on_message(message):
         message_author = message.author.display_name + '#' + message.author.discriminator
@@ -410,7 +429,6 @@ if __name__ == '__main__':
                         second_print = f"JUNK: {JUNK[0]} Fish * {JUNK[1]} Quantity = {JUNK[0] * JUNK[1]} Points" + "\n" + f"BASIC: {BASIC[0]} Fish * {BASIC[1]} Quantity = {BASIC[0] * BASIC[1]} Points" + "\n" + f"FINE: {FINE[0]} Fish * {FINE[1]} Quantity = {FINE[0] * FINE[1]} Points" + "\n" + f"MASTERWORK: {MASTERWORK[0]} Fish * {MASTERWORK[1]} Quantity = {MASTERWORK[0] * MASTERWORK[1]} Points" + "\n" + f"RARE: {RARE[0]} Fish * {RARE[1]} Quantity = {RARE[0] * RARE[1]} Points" + "\n" + f"EXOTIC: {EXOTIC[0]} Fish * {EXOTIC[1]} Quantity = {EXOTIC[0] * EXOTIC[1]} Points" + "\n" + f"ASCENDED: {ASCENDED[0]} Fish * {ASCENDED[1]} Quantity = {ASCENDED[0] * ASCENDED[1]} Points" + "\n" + f"LEGENDARY: {LEGENDARY[0]} Fish * {LEGENDARY[1]} Quantity = {LEGENDARY[0] * LEGENDARY[1]} Points "
                         await message.channel.send(
                             print_message + "\n" + second_print + "\n" + "Total: " + str(TOTAL) + " Points")
-                        await message.channel.send("---------------------------------------------------")
                         place += 1
 
 
@@ -424,18 +442,38 @@ if __name__ == '__main__':
                     await message.channel.send("Can not create standings because you are not in a tournament")
                 else:
                     SUBSCRIBER_FISHING_CHALLENGE = create_subscriber_fishing_challenge(tournament_key)
-                    response = sorted(generate_standings_apikey(SUBSCRIBER_FISHING_CHALLENGE).items(), key=lambda x: x[1],
-                                    reverse=True)
+                    response = sorted(generate_standings_apikey(SUBSCRIBER_FISHING_CHALLENGE).items(),
+                                      key=lambda x: x[1],
+                                      reverse=True)
+                    start = '`'
+                    end = '`'
                     place = 1
+                    place_string = ""
+                    max_char_name_length = 36
+                    offset = 1
                     for key in response:
-                        print_message = f"Position {place}: " + str(key[0]) + ' -> ' + str(key[1]) + " Points"
+                        if place == 1:
+                            place_string = ":one:" + start
+                            offset = +12
+                        elif place == 2:
+                            place_string = ":two:" + start
+                            offset = +8
+                        elif place == 3:
+                            place_string = ":three:" + start
+                            offset = +4
+                        else:
+                            place_string = start + str(place) + "  "
+
+                        char_name_length = len(key[0])
+                        chars_to_fill = max_char_name_length - char_name_length + offset
+                        print_message = f"{place_string}: " + str(key[0]) + '  ' +chars_to_fill*'-' + '> ' + str(key[1]) + " Points" + end
                         await message.channel.send(print_message)
-                        await message.channel.send("---------------------------------------------------")
                         place += 1
 
 
             elif message.content == 'help':
-                await message.channel.send("Write <Points>, <Fish>, <Standings> for tournament information")
+                await message.channel.send(
+                    "Write <Points>, <Fish>, <Standings>, <Tournament:{duration},{preparing time}>, <Join:{tournament ID}> for tournament information")
 
 
             elif message.content.startswith('Tournament:'):
