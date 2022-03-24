@@ -10,10 +10,18 @@ import sqlite3
 import discord
 
 
+def create_subscriber_fishing_challenge(tournament_key):
+    con = sqlite3.connect('user.db')
+    cur = con.cursor()
+    cur.execute("select * from users where currenttournament=:tournament_key", {"tournament_key": tournament_key})
+    save = cur.fetchall()
+    con.close()
+    return save
+
 def create_new_user(apikey, name, discord_user_id):
     con = sqlite3.connect('user.db')
     cur = con.cursor()
-    cur.execute("insert into users values (?, ?, ?)", (apikey, name, discord_user_id))
+    cur.execute("insert into users values (?, ?, ?, ?)", (apikey, name, discord_user_id, None))
     con.commit()
     con.close()
 
@@ -32,6 +40,8 @@ def create_tournament(apikey, name, discord_user_id, start, duration, id, prepar
     cur = con.cursor()
     cur.execute("insert into tournament values (?, ?, ?, ?, ?, ?, ?)",
                 (apikey, name, discord_user_id, start, duration, id, preparing_time))
+    cur.execute(
+        f"update users SET currenttournament = '{id}' WHERE discordid = '{discord_user_id}'")
     con.commit()
     con.close()
 
@@ -46,6 +56,9 @@ def join_tournament(tournament_id, api_key, player_name, discord_id):
     discord_id = save[0][2] + "," + discord_id
     cur.execute(
         f"update tournament SET subscriberkey = '{api_keys}', subscribername = '{char_names}', discordid = '{discord_id}' WHERE id = '{tournament_id}'")
+    con.commit()
+    cur.execute(
+        f"update users SET currenttournament = '{tournament_id}' WHERE apikey = '{api_key}'")
     con.commit()
     con.close()
 
@@ -326,6 +339,7 @@ def generate_advanced_standings_apikey(subscribers):
     return STANDINGS
 
 
+
 if __name__ == '__main__':
     client = discord.Client()
 
@@ -337,18 +351,14 @@ if __name__ == '__main__':
     async def on_ready():
         print('We have logged in as {0.user}'.format(client))
 
-
+    #bug fixen das nicht registrierte Nuzter immer die Error Meldung bekommen
     @client.event
     async def on_message(message):
         message_author = message.author.display_name + '#' + message.author.discriminator
-
         user = get_user(message_author)
         if len(user) == 0:
             if message.author == client.user:
                 return
-            await message.channel.send(
-                "You need to register to see information. Please type <Register> for more information")
-
             if message.content.startswith('Register:'):
                 if message.channel.type.name == 'private':
                     creds = message.content[9:]
@@ -369,33 +379,39 @@ if __name__ == '__main__':
         else:
             api_key = user[0][0]
             char_name = user[0][1]
+            tournament_key = user[0][3]
 
             if message.author == client.user:
                 return
             if message.content == 'Points':
-                response = sorted(generate_advanced_standings_apikey(SUBSCRIBER_FISHING_CHALLENGE).items(),
-                                  key=lambda x: x[1],
-                                  reverse=True)
-                place = 1
-                for key in response:
-                    print_message = f"Position {place}: " + str(key[0])
-                    JUNK = key[1][0]
-                    BASIC = key[1][1]
-                    FINE = key[1][2]
-                    MASTERWORK = key[1][3]
-                    RARE = key[1][4]
-                    EXOTIC = key[1][5]
-                    ASCENDED = key[1][6]
-                    LEGENDARY = key[1][7]
-                    TOTAL = JUNK[0] * JUNK[1] + BASIC[0] * BASIC[1] + FINE[0] * FINE[1] + MASTERWORK[0] * MASTERWORK[
-                        1] + \
-                            RARE[0] * RARE[1] + EXOTIC[0] * EXOTIC[1] + ASCENDED[0] * ASCENDED[1] + LEGENDARY[0] * \
-                            LEGENDARY[1]
-                    second_print = f"JUNK: {JUNK[0]} Fish * {JUNK[1]} Quantity = {JUNK[0] * JUNK[1]} Points" + "\n" + f"BASIC: {BASIC[0]} Fish * {BASIC[1]} Quantity = {BASIC[0] * BASIC[1]} Points" + "\n" + f"FINE: {FINE[0]} Fish * {FINE[1]} Quantity = {FINE[0] * FINE[1]} Points" + "\n" + f"MASTERWORK: {MASTERWORK[0]} Fish * {MASTERWORK[1]} Quantity = {MASTERWORK[0] * MASTERWORK[1]} Points" + "\n" + f"RARE: {RARE[0]} Fish * {RARE[1]} Quantity = {RARE[0] * RARE[1]} Points" + "\n" + f"EXOTIC: {EXOTIC[0]} Fish * {EXOTIC[1]} Quantity = {EXOTIC[0] * EXOTIC[1]} Points" + "\n" + f"ASCENDED: {ASCENDED[0]} Fish * {ASCENDED[1]} Quantity = {ASCENDED[0] * ASCENDED[1]} Points" + "\n" + f"LEGENDARY: {LEGENDARY[0]} Fish * {LEGENDARY[1]} Quantity = {LEGENDARY[0] * LEGENDARY[1]} Points "
-                    await message.channel.send(
-                        print_message + "\n" + second_print + "\n" + "Total: " + str(TOTAL) + " Points")
-                    await message.channel.send("---------------------------------------------------")
-                    place += 1
+                if tournament_key is None:
+                    await message.channel.send("Can not create Points because you are not in a tournament")
+                else:
+                    SUBSCRIBER_FISHING_CHALLENGE = create_subscriber_fishing_challenge(tournament_key)
+                    response = sorted(generate_advanced_standings_apikey(SUBSCRIBER_FISHING_CHALLENGE).items(),
+                                      key=lambda x: x[1],
+                                      reverse=True)
+                    place = 1
+                    for key in response:
+                        print_message = f"Position {place}: " + str(key[0])
+                        JUNK = key[1][0]
+                        BASIC = key[1][1]
+                        FINE = key[1][2]
+                        MASTERWORK = key[1][3]
+                        RARE = key[1][4]
+                        EXOTIC = key[1][5]
+                        ASCENDED = key[1][6]
+                        LEGENDARY = key[1][7]
+                        TOTAL = JUNK[0] * JUNK[1] + BASIC[0] * BASIC[1] + FINE[0] * FINE[1] + MASTERWORK[0] * \
+                                MASTERWORK[
+                                    1] + \
+                                RARE[0] * RARE[1] + EXOTIC[0] * EXOTIC[1] + ASCENDED[0] * ASCENDED[1] + LEGENDARY[0] * \
+                                LEGENDARY[1]
+                        second_print = f"JUNK: {JUNK[0]} Fish * {JUNK[1]} Quantity = {JUNK[0] * JUNK[1]} Points" + "\n" + f"BASIC: {BASIC[0]} Fish * {BASIC[1]} Quantity = {BASIC[0] * BASIC[1]} Points" + "\n" + f"FINE: {FINE[0]} Fish * {FINE[1]} Quantity = {FINE[0] * FINE[1]} Points" + "\n" + f"MASTERWORK: {MASTERWORK[0]} Fish * {MASTERWORK[1]} Quantity = {MASTERWORK[0] * MASTERWORK[1]} Points" + "\n" + f"RARE: {RARE[0]} Fish * {RARE[1]} Quantity = {RARE[0] * RARE[1]} Points" + "\n" + f"EXOTIC: {EXOTIC[0]} Fish * {EXOTIC[1]} Quantity = {EXOTIC[0] * EXOTIC[1]} Points" + "\n" + f"ASCENDED: {ASCENDED[0]} Fish * {ASCENDED[1]} Quantity = {ASCENDED[0] * ASCENDED[1]} Points" + "\n" + f"LEGENDARY: {LEGENDARY[0]} Fish * {LEGENDARY[1]} Quantity = {LEGENDARY[0] * LEGENDARY[1]} Points "
+                        await message.channel.send(
+                            print_message + "\n" + second_print + "\n" + "Total: " + str(TOTAL) + " Points")
+                        await message.channel.send("---------------------------------------------------")
+                        place += 1
 
 
             elif message.content == 'Fish':
@@ -404,14 +420,18 @@ if __name__ == '__main__':
 
 
             elif message.content == 'Standings':
-                response = sorted(generate_standings_apikey(SUBSCRIBER_FISHING_CHALLENGE).items(), key=lambda x: x[1],
-                                  reverse=True)
-                place = 1
-                for key in response:
-                    print_message = f"Position {place}: " + str(key[0]) + ' -> ' + str(key[1]) + " Points"
-                    await message.channel.send(print_message)
-                    await message.channel.send("---------------------------------------------------")
-                    place += 1
+                if tournament_key is None:
+                    await message.channel.send("Can not create standings because you are not in a tournament")
+                else:
+                    SUBSCRIBER_FISHING_CHALLENGE = create_subscriber_fishing_challenge(tournament_key)
+                    response = sorted(generate_standings_apikey(SUBSCRIBER_FISHING_CHALLENGE).items(), key=lambda x: x[1],
+                                    reverse=True)
+                    place = 1
+                    for key in response:
+                        print_message = f"Position {place}: " + str(key[0]) + ' -> ' + str(key[1]) + " Points"
+                        await message.channel.send(print_message)
+                        await message.channel.send("---------------------------------------------------")
+                        place += 1
 
 
             elif message.content == 'help':
